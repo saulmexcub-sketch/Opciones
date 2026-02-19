@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -554,13 +553,16 @@ function closeCtx(){
 
 function deleteTrade(){
   if(ctxIdx < 0) return;
-  if(!confirm('¿Eliminar este trade?')){ closeCtx(); return; }
-  const h = getHist();
-  const realIdx = h.length - 1 - ctxIdx; // convert display index to array index
-  h.splice(realIdx, 1);
-  setHist(h);
-  closeCtx();
-  renderHist();
+  closeCtx(); // cerrar primero para que no bloquee el DOM
+  setTimeout(()=>{
+    if(!confirm('¿Eliminar este trade?')) return;
+    const h = getHist();
+    const realIdx = h.length - 1 - ctxIdx;
+    h.splice(realIdx, 1);
+    setHist(h);
+    ctxIdx = -1;
+    renderHist(); // actualiza tabla al instante
+  }, 150);
 }
 
 // ── Edit ─────────────────────────────────────────────────────────
