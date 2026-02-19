@@ -413,7 +413,7 @@
         <div class="field">
           <label>Dinero</label>
           <input type="number" inputmode="decimal" id="dinero" placeholder="0"
-                 oninput="saveState(); scheduleCalc()" onblur="saveState(); formatDinero()">
+                 oninput="saveField('dinero'); scheduleCalc()" onblur="saveField('dinero'); formatDinero()">
           <div class="hint">Presupuesto total disponible</div>
         </div>
 
@@ -422,7 +422,7 @@
           <div class="ask-row">
             <button class="stepper" onpointerdown="startHold('dec')" onpointerup="stopHold()" onpointerleave="stopHold()">−</button>
             <input type="number" inputmode="decimal" id="ask" placeholder="0.00"
-                   step="0.01" oninput="saveState(); scheduleCalc()">
+                   step="0.01" oninput="saveField('ask'); scheduleCalc()">
             <button class="stepper" onpointerdown="startHold('inc')" onpointerup="stopHold()" onpointerleave="stopHold()">+</button>
           </div>
           <div class="hint">Precio de entrada por contrato</div>
@@ -431,14 +431,14 @@
         <div class="field">
           <label>Limit %</label>
           <input type="number" inputmode="decimal" id="target" value="10"
-                 oninput="saveState(); scheduleCalc()">
+                 oninput="saveField('target'); scheduleCalc()">
           <div class="hint">Ganancia neta sobre lo invertido</div>
         </div>
 
         <div class="field">
           <label>Stop Limit %</label>
           <input type="number" inputmode="decimal" id="stop" value="20"
-                 oninput="saveState(); scheduleCalc()">
+                 oninput="saveField('stop'); scheduleCalc()">
           <div class="hint">Pérdida máx. neta (incl. comisión salida)</div>
         </div>
 
@@ -514,31 +514,31 @@
       <div class="form-grid">
         <div class="field">
           <label>Fecha (mm/dd/yy)</label>
-          <input type="text" id="h-fecha" oninput="saveState()" placeholder="mm/dd/yy" inputmode="numeric">
+          <input type="text" id="h-fecha" oninput="saveField('h-fecha')" placeholder="mm/dd/yy" inputmode="numeric">
         </div>
         <div class="field">
           <label>Ticker</label>
-          <input type="text" id="h-ticker" oninput="saveState()" placeholder="AAPL" style="text-transform:uppercase">
+          <input type="text" id="h-ticker" oninput="saveField('h-ticker')" placeholder="AAPL" style="text-transform:uppercase">
         </div>
         <div class="field">
           <label>Hora entrada</label>
-          <input type="time" id="h-entry" onchange="saveState()">
+          <input type="time" id="h-entry" onchange="saveField('h-entry')">
         </div>
         <div class="field">
           <label>Hora salida</label>
-          <input type="time" id="h-exit" onchange="saveState()">
+          <input type="time" id="h-exit" onchange="saveField('h-exit')">
         </div>
         <div class="field">
           <label>Contratos</label>
-          <input type="number" inputmode="numeric" id="h-contratos" oninput="saveState()" placeholder="0">
+          <input type="number" inputmode="numeric" id="h-contratos" oninput="saveField('h-contratos')" placeholder="0">
         </div>
         <div class="field">
           <label>Ask entrada</label>
-          <input type="number" inputmode="decimal" id="h-ask-in" oninput="saveState()" placeholder="0.00">
+          <input type="number" inputmode="decimal" id="h-ask-in" oninput="saveField('h-ask-in')" placeholder="0.00">
         </div>
         <div class="field">
           <label>Ask salida</label>
-          <input type="number" inputmode="decimal" id="h-ask-out" oninput="saveState()" placeholder="0.00">
+          <input type="number" inputmode="decimal" id="h-ask-out" oninput="saveField('h-ask-out')" placeholder="0.00">
         </div>
         <div class="field">
           <label>Tipo</label>
@@ -595,43 +595,33 @@ const COM  = 0.65;
 let calcTimer  = null;
 let holdTimer  = null;
 let holdDir    = null;
-let tipoActual = 'CALL';
 let history    = JSON.parse(localStorage.getItem('opciones_hist') || '[]');
 
-// Persistir valores de inputs en memoria para que no se pierdan
-const state = {
-  dinero: '', ask: '', target: '10', stop: '20',
-  hFecha: '', hTicker: '', hEntry: '', hExit: '',
-  hContratos: '', hAskIn: '', hAskOut: ''
-};
+// ── Persistencia de inputs en localStorage ────────────────────────
+// Cada campo tiene su propia clave — se guarda al instante al escribir
+const FIELDS = ['dinero','ask','target','stop',
+                'h-fecha','h-ticker','h-entry','h-exit',
+                'h-contratos','h-ask-in','h-ask-out'];
+
+function saveField(id) {
+  localStorage.setItem('f_' + id, $(id).value);
+}
 
 function saveState() {
-  state.dinero     = $('dinero').value;
-  state.ask        = $('ask').value;
-  state.target     = $('target').value;
-  state.stop       = $('stop').value;
-  state.hFecha     = $('h-fecha').value;
-  state.hTicker    = $('h-ticker').value;
-  state.hEntry     = $('h-entry').value;
-  state.hExit      = $('h-exit').value;
-  state.hContratos = $('h-contratos').value;
-  state.hAskIn     = $('h-ask-in').value;
-  state.hAskOut    = $('h-ask-out').value;
+  FIELDS.forEach(id => localStorage.setItem('f_' + id, $(id).value));
 }
 
 function restoreState() {
-  $('dinero').value      = state.dinero;
-  $('ask').value         = state.ask;
-  $('target').value      = state.target;
-  $('stop').value        = state.stop;
-  $('h-fecha').value     = state.hFecha;
-  $('h-ticker').value    = state.hTicker;
-  $('h-entry').value     = state.hEntry;
-  $('h-exit').value      = state.hExit;
-  $('h-contratos').value = state.hContratos;
-  $('h-ask-in').value    = state.hAskIn;
-  $('h-ask-out').value   = state.hAskOut;
+  FIELDS.forEach(id => {
+    const v = localStorage.getItem('f_' + id);
+    if (v !== null) $(id).value = v;
+  });
+  // Restore tipo
+  const t = localStorage.getItem('f_tipo') || 'CALL';
+  setTipo(t);
 }
+
+let tipoActual = 'CALL';
 
 // ── Tema ──────────────────────────────────────────────────────────
 let darkMode = true;
@@ -672,7 +662,7 @@ function stepAsk(dir) {
   let v = parseNum($('ask').value) || 0;
   v = Math.max(0, Math.round((v + (dir === 'inc' ? 0.01 : -0.01)) * 100) / 100);
   $('ask').value = fmtPrice(v);
-  saveState();
+  saveField('ask');
   scheduleCalc();
 }
 function startHold(dir) {
@@ -754,9 +744,9 @@ function clearOutputs() {
 }
 
 function limpiar() {
-  ['dinero','ask'].forEach(id => $(id).value = '');
-  $('target').value = '10';
-  $('stop').value   = '20';
+  ['dinero','ask'].forEach(id => { $(id).value = ''; localStorage.removeItem('f_'+id); });
+  $('target').value = '10'; localStorage.setItem('f_target','10');
+  $('stop').value   = '20'; localStorage.setItem('f_stop','20');
   $('status').textContent = '';
   $('status').className   = 'status';
   clearOutputs();
@@ -765,6 +755,7 @@ function limpiar() {
 // ── Historial ─────────────────────────────────────────────────────
 function setTipo(tipo) {
   tipoActual = tipo;
+  localStorage.setItem('f_tipo', tipo);
   $('tipo-call').classList.toggle('active', tipo === 'CALL');
   $('tipo-put').classList.toggle('active',  tipo === 'PUT');
 }
@@ -820,9 +811,9 @@ function saveTrade() {
   localStorage.setItem('opciones_hist', JSON.stringify(history));
 
   // Reset form
-  ['h-fecha','h-ticker','h-contratos','h-ask-in','h-ask-out'].forEach(id => $(id).value = '');
-  $('h-entry').value = '';
-  $('h-exit').value  = '';
+  ['h-fecha','h-ticker','h-contratos','h-ask-in','h-ask-out'].forEach(id => { $(id).value=''; localStorage.removeItem('f_'+id); });
+  $('h-entry').value=''; localStorage.removeItem('f_h-entry');
+  $('h-exit').value=''; localStorage.removeItem('f_h-exit');
   setTipo('CALL');
 
   renderHistory();
