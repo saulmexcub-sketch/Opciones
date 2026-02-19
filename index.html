@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -389,7 +388,9 @@ function holdStop(){ clearTimeout(ht); }
 
 // ─── historial ───────────────────────────────────────────────────
 let tipo='CALL';
-let hist=JSON.parse(load('hist','[]'));
+// hist always read fresh from localStorage — never stale
+function getHist(){ try{ return JSON.parse(localStorage.getItem('hist')||'[]'); }catch(e){ return []; } }
+function setHist(h){ try{ localStorage.setItem('hist',JSON.stringify(h)); }catch(e){} }
 
 function setTipo(t){
   tipo=t; save('tipo',t);
@@ -415,16 +416,14 @@ function saveTrade(){
   const tIn=n*(ai*M+C), tOut=n*ao*M-n*C, com=n*C*2;
   const pusd=tOut-tIn, ppct=tIn?pusd/tIn*100:0;
   const he=$('hte').value, hx=$('htx').value;
-    // Convert YYYY-MM-DD to mm/dd/yy
-  const rawDate = $('hf').value;
-  let fecha = '—';
-  if(rawDate){
-    const[y,m,d]=rawDate.split('-');
-    fecha=`${m}/${d}/${y.slice(2)}`;
-  }
-  hist.push({fecha,he,hx,dur:duracion(he,hx),
-    ticker:tk,tipo,ctrs:n,ai,ao,tIn,com,pusd,ppct});
-  save('hist',JSON.stringify(hist));
+  // Convert YYYY-MM-DD to mm/dd/yy
+  const rawDate=$('hf').value;
+  let fecha='—';
+  if(rawDate){ const[y,m,d]=rawDate.split('-'); fecha=`${m}/${d}/${y.slice(2)}`; }
+  // SIEMPRE leer fresh de localStorage antes de agregar
+  const h=getHist();
+  h.push({fecha,he,hx,dur:duracion(he,hx),ticker:tk,tipo,ctrs:n,ai,ao,tIn,com,pusd,ppct});
+  setHist(h);
   // Clear form fields
   ['hf','htk','hte','htx','hct','hai','hao'].forEach(id=>{$(id).value='';save('i_'+id,'');});
   setTipo('CALL');
@@ -433,11 +432,12 @@ function saveTrade(){
 
 function clearHist(){
   if(!confirm('¿Borrar todo el historial?')) return;
-  hist=[]; save('hist','[]'); renderHist();
+  setHist([]); renderHist();
 }
 
 function renderHist(){
   const tw=$('tw'),em=$('empty'),su=$('summ');
+  const hist=getHist(); // siempre fresh
   if(!hist.length){
     tw.innerHTML=''; tw.appendChild(em); em.style.display='block';
     su.style.display='none'; return;
