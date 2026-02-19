@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
@@ -50,6 +50,9 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+  body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
   body {
     background: var(--bg);
@@ -410,7 +413,7 @@
         <div class="field">
           <label>Dinero</label>
           <input type="number" inputmode="decimal" id="dinero" placeholder="0"
-                 oninput="scheduleCalc()" onblur="formatDinero()">
+                 oninput="saveState(); scheduleCalc()" onblur="saveState(); formatDinero()">
           <div class="hint">Presupuesto total disponible</div>
         </div>
 
@@ -419,7 +422,7 @@
           <div class="ask-row">
             <button class="stepper" onpointerdown="startHold('dec')" onpointerup="stopHold()" onpointerleave="stopHold()">−</button>
             <input type="number" inputmode="decimal" id="ask" placeholder="0.00"
-                   step="0.01" oninput="scheduleCalc()">
+                   step="0.01" oninput="saveState(); scheduleCalc()">
             <button class="stepper" onpointerdown="startHold('inc')" onpointerup="stopHold()" onpointerleave="stopHold()">+</button>
           </div>
           <div class="hint">Precio de entrada por contrato</div>
@@ -428,14 +431,14 @@
         <div class="field">
           <label>Limit %</label>
           <input type="number" inputmode="decimal" id="target" value="10"
-                 oninput="scheduleCalc()">
+                 oninput="saveState(); scheduleCalc()">
           <div class="hint">Ganancia neta sobre lo invertido</div>
         </div>
 
         <div class="field">
           <label>Stop Limit %</label>
           <input type="number" inputmode="decimal" id="stop" value="20"
-                 oninput="scheduleCalc()">
+                 oninput="saveState(); scheduleCalc()">
           <div class="hint">Pérdida máx. neta (incl. comisión salida)</div>
         </div>
 
@@ -511,31 +514,31 @@
       <div class="form-grid">
         <div class="field">
           <label>Fecha (mm/dd/yy)</label>
-          <input type="text" id="h-fecha" placeholder="mm/dd/yy" inputmode="numeric">
+          <input type="text" id="h-fecha" oninput="saveState()" placeholder="mm/dd/yy" inputmode="numeric">
         </div>
         <div class="field">
           <label>Ticker</label>
-          <input type="text" id="h-ticker" placeholder="AAPL" style="text-transform:uppercase">
+          <input type="text" id="h-ticker" oninput="saveState()" placeholder="AAPL" style="text-transform:uppercase">
         </div>
         <div class="field">
           <label>Hora entrada</label>
-          <input type="time" id="h-entry">
+          <input type="time" id="h-entry" onchange="saveState()">
         </div>
         <div class="field">
           <label>Hora salida</label>
-          <input type="time" id="h-exit">
+          <input type="time" id="h-exit" onchange="saveState()">
         </div>
         <div class="field">
           <label>Contratos</label>
-          <input type="number" inputmode="numeric" id="h-contratos" placeholder="0">
+          <input type="number" inputmode="numeric" id="h-contratos" oninput="saveState()" placeholder="0">
         </div>
         <div class="field">
           <label>Ask entrada</label>
-          <input type="number" inputmode="decimal" id="h-ask-in" placeholder="0.00">
+          <input type="number" inputmode="decimal" id="h-ask-in" oninput="saveState()" placeholder="0.00">
         </div>
         <div class="field">
           <label>Ask salida</label>
-          <input type="number" inputmode="decimal" id="h-ask-out" placeholder="0.00">
+          <input type="number" inputmode="decimal" id="h-ask-out" oninput="saveState()" placeholder="0.00">
         </div>
         <div class="field">
           <label>Tipo</label>
@@ -595,6 +598,41 @@ let holdDir    = null;
 let tipoActual = 'CALL';
 let history    = JSON.parse(localStorage.getItem('opciones_hist') || '[]');
 
+// Persistir valores de inputs en memoria para que no se pierdan
+const state = {
+  dinero: '', ask: '', target: '10', stop: '20',
+  hFecha: '', hTicker: '', hEntry: '', hExit: '',
+  hContratos: '', hAskIn: '', hAskOut: ''
+};
+
+function saveState() {
+  state.dinero     = $('dinero').value;
+  state.ask        = $('ask').value;
+  state.target     = $('target').value;
+  state.stop       = $('stop').value;
+  state.hFecha     = $('h-fecha').value;
+  state.hTicker    = $('h-ticker').value;
+  state.hEntry     = $('h-entry').value;
+  state.hExit      = $('h-exit').value;
+  state.hContratos = $('h-contratos').value;
+  state.hAskIn     = $('h-ask-in').value;
+  state.hAskOut    = $('h-ask-out').value;
+}
+
+function restoreState() {
+  $('dinero').value      = state.dinero;
+  $('ask').value         = state.ask;
+  $('target').value      = state.target;
+  $('stop').value        = state.stop;
+  $('h-fecha').value     = state.hFecha;
+  $('h-ticker').value    = state.hTicker;
+  $('h-entry').value     = state.hEntry;
+  $('h-exit').value      = state.hExit;
+  $('h-contratos').value = state.hContratos;
+  $('h-ask-in').value    = state.hAskIn;
+  $('h-ask-out').value   = state.hAskOut;
+}
+
 // ── Tema ──────────────────────────────────────────────────────────
 let darkMode = true;
 function toggleTheme() {
@@ -607,11 +645,14 @@ function toggleTheme() {
 
 // ── Tabs ──────────────────────────────────────────────────────────
 function switchTab(tab) {
+  saveState();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
+  restoreState();
   if (tab === 'hist') renderHistory();
+  if (tab === 'calc') scheduleCalc();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -631,6 +672,7 @@ function stepAsk(dir) {
   let v = parseNum($('ask').value) || 0;
   v = Math.max(0, Math.round((v + (dir === 'inc' ? 0.01 : -0.01)) * 100) / 100);
   $('ask').value = fmtPrice(v);
+  saveState();
   scheduleCalc();
 }
 function startHold(dir) {
@@ -857,7 +899,9 @@ function renderHistory() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────
+restoreState();
 renderHistory();
+scheduleCalc();
 </script>
 </body>
 </html>
