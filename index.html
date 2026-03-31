@@ -184,6 +184,33 @@ tr:nth-child(odd) td{background:var(--s1)}
 
   <!-- ══ CALCULADORA ══ -->
   <div class="pg on" id="pg-calc">
+
+    <!-- Yahoo Finance -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ctitle">Precio subyacente</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="f" style="flex:1;margin-bottom:0">
+          <label>Ticker</label>
+          <input type="text" id="yfTicker" placeholder="AAPL" autocomplete="off" autocorrect="off"
+            autocapitalize="characters" spellcheck="false"
+            onkeydown="if(event.key==='Enter')fetchYF()"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <button class="btn bp" onclick="fetchYF()" style="height:46px;padding:0 22px;flex-shrink:0">Buscar</button>
+      </div>
+      <div id="yfResult" style="margin-top:12px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span id="yfName" style="font-size:13px;color:var(--mu)"></span>
+          <span id="yfExch" style="font-size:11px;color:var(--mu)"></span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span id="yfPrice" style="font-size:28px;font-weight:700"></span>
+          <span id="yfChg"   style="font-size:14px;font-weight:600"></span>
+        </div>
+      </div>
+      <div class="st" id="yfStatus" style="margin-top:8px"></div>
+    </div>
+
     <div class="cg">
 
       <div class="card">
@@ -634,6 +661,39 @@ function attachRowEvents(){
     // Prevent context menu on long press
     row.addEventListener('contextmenu', e=> e.preventDefault());
   });
+}
+
+// ─── Yahoo Finance ───────────────────────────────────────────────
+async function fetchYF(){
+  const tk = $('yfTicker').value.trim().toUpperCase();
+  if(!tk){ $('yfStatus').textContent='Ingresa un ticker'; $('yfStatus').className='st er'; return; }
+  const st=$('yfStatus'), res=$('yfResult');
+  st.textContent='Buscando…'; st.className='st';
+  res.style.display='none';
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?interval=1d&range=1d`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    const meta=data?.chart?.result?.[0]?.meta;
+    if(!meta) throw new Error('Ticker no encontrado');
+    const price=meta.regularMarketPrice;
+    const prev=meta.chartPreviousClose||meta.previousClose;
+    const chg=prev?(price-prev):null;
+    const chgPct=prev?(chg/prev*100):null;
+    const isUp=chg==null||chg>=0;
+    $('yfName').textContent=meta.instrumentType||tk;
+    $('yfExch').textContent=meta.exchangeName||'';
+    $('yfPrice').textContent=price!=null?'$'+price.toFixed(2):'—';
+    $('yfChg').textContent=chg!=null?(isUp?'+':'')+chg.toFixed(2)+' ('+(isUp?'+':'')+chgPct.toFixed(2)+'%)':'';
+    $('yfChg').style.color=isUp?'var(--ok)':'var(--er)';
+    res.style.display='block';
+    st.textContent=''; st.className='st';
+  }catch(e){
+    st.textContent='Error: '+(e.message||'No se pudo obtener datos');
+    st.className='st er';
+    res.style.display='none';
+  }
 }
 
 // ─── init ────────────────────────────────────────────────────────
