@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000">
+<title>PIC1 — Wire / Conduit / Sealtight</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#f5f5f7;--surface:#fff;--fg:#1d1d1f;--mu:#6e6e73;
+    --ac:#0071e3;--sep:#d2d2d7;--r:12px;
+    --f:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#000;--surface:#1c1c1e;--fg:#f5f5f7;--mu:#98989d;--sep:#38383a;--ac:#2997ff}
+  }
+  body{background:var(--bg);color:var(--fg);font-family:var(--f);min-height:100vh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+
+  /* ── Header ── */
+  .hdr{
+    position:sticky;top:0;z-index:10;
+    background:rgba(245,245,247,.85);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid var(--sep);
+    padding:20px 24px 14px;
+  }
+  @media(prefers-color-scheme:dark){
+    .hdr{background:rgba(0,0,0,.85)}
+  }
+  .hdr-title{
+    font-size:13px;font-weight:600;color:var(--mu);
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;
+  }
+
+  /* ── Search ── */
+  .search-wrap{position:relative}
+  .search-icon{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    color:var(--mu);pointer-events:none;width:17px;height:17px;
+  }
+  #search{
+    width:100%;background:var(--surface);color:var(--fg);
+    border:none;border-radius:10px;
+    padding:11px 14px 11px 40px;
+    font-size:17px;font-family:var(--f);
+    outline:none;-webkit-appearance:none;appearance:none;
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  #search:focus{box-shadow:0 0 0 3px rgba(0,113,227,.35)}
+  @media(prefers-color-scheme:dark){
+    #search:focus{box-shadow:0 0 0 3px rgba(41,151,255,.35)}
+  }
+  .clear-btn{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    background:var(--mu);color:var(--bg);border:none;border-radius:50%;
+    width:18px;height:18px;font-size:11px;cursor:pointer;
+    display:none;align-items:center;justify-content:center;font-weight:700;
+    line-height:1;
+  }
+  .clear-btn.show{display:flex}
+
+  /* ── Counter ── */
+  .counter{
+    font-size:12px;color:var(--mu);padding:8px 24px 2px;
+    font-weight:500;letter-spacing:.2px;
+  }
+
+  /* ── Results ── */
+  .results{padding:8px 16px 32px}
+  .no-results{
+    text-align:center;padding:60px 24px;
+    font-size:17px;color:var(--mu);
+  }
+  .no-results span{display:block;font-size:40px;margin-bottom:12px}
+
+  /* ── Item ── */
+  .item{
+    background:var(--surface);border-radius:var(--r);
+    margin-bottom:8px;padding:14px 18px;
+    display:flex;align-items:center;gap:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+    transition:transform .1s,box-shadow .1s;
+    cursor:default;
+  }
+  .item:active{transform:scale(.98);box-shadow:none}
+
+  /* Part number — the STAR of the show */
+  .part{
+    font-size:18px;font-weight:700;
+    color:var(--ac);font-variant-numeric:tabular-nums;
+    letter-spacing:.3px;white-space:nowrap;min-width:96px;
+    font-feature-settings:"tnum";
+  }
+  .desc{
+    font-size:15px;color:var(--fg);flex:1;line-height:1.35;
+  }
+
+  /* ── Highlight ── */
+  mark{
+    background:rgba(255,214,10,.45);
+    color:inherit;border-radius:3px;padding:0 1px;
+  }
+  @media(prefers-color-scheme:dark){
+    mark{background:rgba(255,214,10,.3)}
+  }
+
+  /* ── Group header ── */
+  .ghead{
+    font-size:11px;font-weight:700;color:var(--mu);
+    text-transform:uppercase;letter-spacing:.7px;
+    padding:18px 4px 6px;
+  }
+
+  /* ── Empty state intro ── */
+  .intro{
+    text-align:center;padding:48px 24px 24px;
+    color:var(--mu);
+  }
+  .intro-icon{font-size:52px;margin-bottom:12px}
+  .intro-title{font-size:22px;font-weight:700;color:var(--fg);margin-bottom:8px}
+  .intro-sub{font-size:15px;line-height:1.5}
+
+  @media(min-width:600px){
+    .results{padding:8px 24px 40px}
+    .hdr{padding:24px 32px 16px}
+    .item{padding:16px 22px}
+    .part{font-size:20px;min-width:108px}
+    .desc{font-size:16px}
+    .counter{padding:8px 32px 2px}
+  }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">PIC1 — Wire / Conduit / Sealtight</div>
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/>
+    </svg>
+    <input id="search" type="search" placeholder="Buscar material…"
+      autocomplete="off" autocorrect="off" spellcheck="false"
+      autofocus>
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()" title="Limpiar">✕</button>
+  </div>
+</div>
+
+<div class="counter" id="counter"></div>
+<div class="results" id="results"></div>
+
+<script>
+const DATA = [
+  // ── WIRE ──
+  {p:"836-02005",  d:"#373 DLO Black"},
+  {p:"836-20107",  d:"#4 Black THHN"},
+  {p:"836-20408",  d:"#4 Green THHN"},
+  {p:"836-20211",  d:"#4 Red TelcoFlex L3"},
+  {p:"836-02090",  d:"#4/0 Black TelcoFlex L2"},
+  {p:"836-02104",  d:"#4/0 Black THHN"},
+  {p:"836-02088",  d:"#4/0 Blue TelcoFlex L2"},
+  {p:"836-02101",  d:"#4/0 Green TelcoFlex L2"},
+  {p:"836-02092",  d:"#4/0 Green TelcoFlex L4"},
+  {p:"836-20401",  d:"#4/0 Green THHN"},
+  {p:"836-00430",  d:"#4/0 Green XHHW"},
+  {p:"836-02089",  d:"#4/0 Red TelcoFlex L2"},
+  {p:"836-20127",  d:"#400 kcmil Black 600V PVC"},
+  {p:"836-20120",  d:"#500 kcmil THHN"},
+  {p:"836-02060",  d:"#6 Black TelcoFlex L2"},
+  {p:"836-20108",  d:"#6 Black THHN"},
+  {p:"836-00139",  d:"#6 Black XHHW"},
+  {p:"836-02057",  d:"#6 Blue TelcoFlex L2"},
+  {p:"836-00194",  d:"#6 Blue TelcoFlex L3"},
+  {p:"836-20307",  d:"#6 Blue THHN"},
+  {p:"836-00206",  d:"#6 Brown THHN"},
+  {p:"836-02103",  d:"#6 Green TelcoFlex L2"},
+  {p:"836-02094",  d:"#6 Green TelcoFlex L3"},
+  {p:"836-20409",  d:"#6 Green THHN"},
+  {p:"836-00282",  d:"#6 Green XHHW"},
+  {p:"836-00207",  d:"#6 Orange THHN"},
+  {p:"836-02055",  d:"#6 Red TelcoFlex L2"},
+  {p:"836-20212",  d:"#6 Red TelcoFlex L3"},
+  {p:"836-20203",  d:"#6 Red THHN"},
+  {p:"836-20607",  d:"#6 White THHN"},
+  {p:"836-02100",  d:"#750 kcmil Green TelcoFlex L2"},
+  {p:"836-02037",  d:"#777 DLO Black"},
+  {p:"836-20109",  d:"#8 Black THHN"},
+  {p:"836-00140",  d:"#8 Black XHHW"},
+  {p:"836-20302",  d:"#8 Blue THHN"},
+  {p:"836-00196",  d:"#8 Brown THHN"},
+  {p:"836-02095",  d:"#8 Green TelcoFlex L3"},
+  {p:"836-20410",  d:"#8 Green THHN"},
+  {p:"836-00197",  d:"#8 Orange THHN"},
+  {p:"836-20204",  d:"#8 Red THHN"},
+  {p:"836-00492",  d:"#8 White XHHW"},
+  {p:"836-00198",  d:"#8 Yellow THHN"},
+  // ── CAT / DATA ──
+  {p:"836-00031",  d:"CAT3 #24 25PR Gray"},
+  {p:"836-00037",  d:"CAT3 #24 AWG 12PR"},
+  {p:"836-00135",  d:"CAT3 24 AWG 50PR Solid Gray Voice GR"},
+  {p:"836-02036",  d:"CAT5e #24 AWG 4PR Shielded Yellow"},
+  {p:"836-00114",  d:"CAT5e #24 AWG 4PR"},
+  {p:"836-02009",  d:"CAT5e 24 AWG Orange"},
+  {p:"836-00078",  d:"CAT6 23 AWG 4PR Riser"},
+  {p:"836-00622",  d:"CAT6 23AWG 4PR Yellow"},
+  {p:"836-00184",  d:"CAT6 Unshielded Yellow"},
+  // ── CONDUIT / SEALTIGHT ──
+  {p:"819-40045",  d:"Conduit 3/4\" RWS High Strength Steel"},
+  {p:"819-20171",  d:"Sealtight 1\" Non-Metallic"},
+  {p:"819-10249",  d:"Sealtight 1\" Metallic"},
+  {p:"819-20170",  d:"Sealtight 1/2\" Non-Metallic"},
+  {p:"819-10247",  d:"Sealtight 1/2\" Metallic"},
+  {p:"819-10251",  d:"Sealtight 1-1/2\" Metallic"},
+  {p:"819-00006",  d:"Sealtight 1-1/4\" Metallic"},
+  {p:"819-20174",  d:"Sealtight 2\" Non-Metallic"},
+  {p:"819-10252",  d:"Sealtight 2\" Metallic"},
+  {p:"819-10248",  d:"Sealtight 3/4\" Metallic"},
+  // ── #1 / #1/0 ──
+  {p:"836-20115",  d:"#1 Black THHN"},
+  {p:"836-20403",  d:"#1 Green THHN"},
+  {p:"836-00799",  d:"#1/0 3C w/#6G XHHW"},
+  {p:"836-20101",  d:"#1/0 Black THHN"},
+  {p:"836-20404",  d:"#1/0 Green THHN"},
+  // ── #10 ──
+  {p:"836-20110",  d:"#10 Black THHN"},
+  {p:"836-00141",  d:"#10 Black XHHW"},
+  {p:"836-20801",  d:"#10 Brown THHN"},
+  {p:"836-20411",  d:"#10 Green THHN"},
+  {p:"836-20702",  d:"#10 Orange THHN"},
+  {p:"836-20205",  d:"#10 Red THHN"},
+  {p:"836-00279",  d:"#10 White XHHW"},
+  {p:"836-20504",  d:"#10 Yellow THHN"},
+  // ── #12 ──
+  {p:"836-00454",  d:"#12 3C w/#12G XHHW"},
+  {p:"836-20111",  d:"#12 Black THHN"},
+  {p:"836-00142",  d:"#12 Black XHHW"},
+  {p:"836-20304",  d:"#12 Blue THHN"},
+  {p:"836-00422",  d:"#12 Blue XHHW"},
+  {p:"836-20803",  d:"#12 Brown THHN"},
+  {p:"836-00502",  d:"#12 Brown XHHW"},
+  {p:"836-00062",  d:"#12 Gray THHN"},
+  {p:"836-20412",  d:"#12 Green THHN"},
+  {p:"836-00280",  d:"#12 Green XHHW"},
+  {p:"836-20703",  d:"#12 Orange THHN"},
+  {p:"836-00494",  d:"#12 Orange XHHW"},
+  {p:"836-02152",  d:"#12 Pink THHN"},
+  {p:"836-02153",  d:"#12 Pink XHHW"},
+  {p:"836-20901",  d:"#12 Purple THHN"},
+  {p:"836-00714",  d:"#12 Purple XHHW"},
+  {p:"836-20207",  d:"#12 Red THHN"},
+  {p:"836-00437",  d:"#12 Red XHHW"},
+  {p:"836-10102",  d:"#12 Solid Green THHN"},
+  {p:"836-10105",  d:"#12 Solid Red THHN"},
+  {p:"836-02108",  d:"#12 TelcoFlex L2 Black"},
+  {p:"836-02107",  d:"#12 TelcoFlex L2 Red"},
+  {p:"836-00122",  d:"#12 TelcoFlex L3 Gray"},
+  {p:"836-20604",  d:"#12 White THHN"},
+  {p:"836-00281",  d:"#12 White XHHW"},
+  {p:"836-20505",  d:"#12 Yellow THHN"},
+  {p:"836-00498",  d:"#12 Yellow XHHW"},
+  // ── #14 ──
+  {p:"836-00291",  d:"#14 4C THHN"},
+  {p:"836-02098",  d:"#14 Black TelcoFlex L2"},
+  {p:"836-20112",  d:"#14 Black THHN"},
+  {p:"836-00427",  d:"#14 Black XHHW"},
+  {p:"836-20305",  d:"#14 Blue THHN"},
+  {p:"836-00423",  d:"#14 Blue XHHW"},
+  {p:"836-00182",  d:"#14 Gray THHN"},
+  {p:"836-20413",  d:"#14 Green THHN"},
+  {p:"836-00425",  d:"#14 Orange XHHW"},
+  {p:"836-00098",  d:"#14 Purple THHN"},
+  {p:"836-02097",  d:"#14 Red TelcoFlex L2"},
+  {p:"836-00424",  d:"#14 Red XHHW"},
+  {p:"836-20605",  d:"#14 White THHN"},
+  {p:"836-00426",  d:"#14 White XHHW"},
+  {p:"836-20501",  d:"#14 Yellow THHN"},
+  // ── #16 ──
+  {p:"836-02109",  d:"#16 Black Marine Flex"},
+  {p:"836-02110",  d:"#16 Red Marine Flex"},
+  {p:"836-10203",  d:"#16 Red Solid THHN"},
+  // ── #18 ──
+  {p:"836-00038",  d:"#18 2C Thermostat Gray"},
+  {p:"836-00545",  d:"#18 2PR Instrument"},
+  {p:"836-00778",  d:"#18 2PR Unshielded"},
+  {p:"836-00002",  d:"#18 5C Thermostat"},
+  {p:"836-02099",  d:"#18 6C PVC"},
+  {p:"836-00028",  d:"#18 6C Thermostat"},
+  {p:"836-00054",  d:"#18 8C Thermostat"},
+  {p:"836-10105",  d:"#18 Solid Black THHN"},
+  {p:"836-10302",  d:"#18 Solid Blue THHN"},
+  {p:"836-10403",  d:"#18 Solid Green THHN"},
+  {p:"836-10701",  d:"#18 Solid Orange THHN"},
+  {p:"836-10204",  d:"#18 Solid Red THHN"},
+  {p:"836-10602",  d:"#18 Solid White THHN"},
+  {p:"836-10501",  d:"#18 Solid Yellow THHN"},
+  // ── #2 ──
+  {p:"836-29003",  d:"#2 Bare"},
+  {p:"836-20106",  d:"#2 Black THHN"},
+  {p:"836-00497",  d:"#2 Black XHHW"},
+  {p:"836-20406",  d:"#2 Green THHN"},
+  {p:"836-19101",  d:"#2 Solid Bare Tinned"},
+  {p:"836-20405",  d:"#2 White THHN"},
+  // ── #22 / #24 ──
+  {p:"836-00898",  d:"#22 2C PVC Red & Black"},
+  {p:"836-02050",  d:"#22 2PR Shielded w/Drain PVC"},
+  {p:"836-02051",  d:"#22 4PR 380V PVC"},
+  {p:"836-02105",  d:"#24 Shielded w/Drain PVC"},
+  // ── #250 ──
+  {p:"836-00711",  d:"#250 kcmil Aluminum Green"},
+  {p:"836-00047",  d:"#250 kcmil Black THHN"},
+  {p:"836-01997",  d:"#250 kcmil Green XHHW"},
+  // ── #3 / #3/0 ──
+  {p:"836-20114",  d:"#3 Black THHN"},
+  {p:"836-20414",  d:"#3 Green THHN"},
+  {p:"836-20103",  d:"#3/0 Black THHN"},
+  {p:"836-20126",  d:"#3/0 Black Welding"},
+  // ── DLO / kcmil ──
+  {p:"836-02004",  d:"#313 DLO Black Americable"},
+  {p:"836-00108",  d:"#313 DLO Black Southwire"},
+  {p:"836-02058",  d:"#350 kcmil TelcoFlex L2 Black"},
+];
+
+// ── normalise for search ──
+function norm(s){ return s.toLowerCase().replace(/[#"\/]/g,' ').replace(/\s+/g,' ').trim(); }
+function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+function highlight(text, q){
+  if(!q) return text;
+  const words = q.trim().split(/\s+/).filter(Boolean).map(esc);
+  let out = text;
+  words.forEach(w=>{
+    out = out.replace(new RegExp(`(${w})`, 'gi'), '<mark>$1</mark>');
+  });
+  return out;
+}
+
+function render(q){
+  const res = document.getElementById('results');
+  const counter = document.getElementById('counter');
+  const qn = norm(q||'');
+  const words = qn.split(/\s+/).filter(Boolean);
+
+  let matches;
+  if(!words.length){
+    matches = DATA;
+  } else {
+    matches = DATA.filter(r=>{
+      const hay = norm(r.p+' '+r.d);
+      return words.every(w=>hay.includes(w));
+    });
+  }
+
+  if(!q){
+    counter.textContent = `${DATA.length} materiales`;
+    res.innerHTML = `<div class="intro">
+      <div class="intro-icon">🔌</div>
+      <div class="intro-title">Wire / Conduit / Sealtight</div>
+      <div class="intro-sub">${DATA.length} partes disponibles.<br>Escribe para buscar al instante.</div>
+    </div>`;
+    return;
+  }
+
+  if(!matches.length){
+    counter.textContent = '0 resultados';
+    res.innerHTML = `<div class="no-results"><span>🔍</span>Sin resultados para "<strong>${q}</strong>"</div>`;
+    return;
+  }
+
+  counter.textContent = matches.length === 1 ? '1 resultado' : `${matches.length} resultados`;
+
+  res.innerHTML = matches.map(r=>{
+    const ph = highlight(r.p, q);
+    const dh = highlight(r.d, q);
+    return `<div class="item">
+      <div class="part">${ph}</div>
+      <div class="desc">${dh}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Events ──
+const input = document.getElementById('search');
+const clearBtn = document.getElementById('clearBtn');
+
+input.addEventListener('input', ()=>{
+  const v = input.value;
+  clearBtn.classList.toggle('show', v.length > 0);
+  render(v);
+});
+
+function clearSearch(){
+  input.value='';
+  clearBtn.classList.remove('show');
+  render('');
+  input.focus();
+}
+
+render('');
+</script>
+</body>
+</html>
